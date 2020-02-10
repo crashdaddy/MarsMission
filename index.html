@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript" src="includes/jquery-3.4.1.min.js"></script> 
+    <link rel="stylesheet" type="text/css" href="includes/style.css" />   
+<title>Mission To Mars</title>
+</head>
+<body>
+<script>
+////////////////////////////////////////
+// Definitions
+//
+//     Build a class for the player
+class Player {
+    constructor(name,rank,money){
+        this.name=name;
+        this.rank=rank;
+        this.money=money;
+        this.ship = null;
+    }
+    //     Make sure Crew Members can enter Ships
+    enterShip(ship){
+        this.ship = ship;
+        ship.crew.push(this);
+    }
+}
+//     Build a class for Ship
+  class Ship {
+      constructor(name, type, ability, cost){
+          this.name= name;
+          this.type = type;
+          this.ability = ability;
+          this.crew = [];
+          this.currentLocation = "";
+          this.cost = cost;
+          // we push each new instance of a class
+          // into an array of objects so we can
+          // keep track of them
+          Ship.objects.push(this);
+      }
+//     Make sure return a mission statement
+      missionStatement() {
+          if (this.crew.length===0) {
+              return "Can't perform a mission yet.";
+          }
+          else return this.ability;
+      }
+  }
+
+// this is the class for the friendly bases
+  class Base {
+      constructor(name,equipment,mission) {
+          this.name = name;
+          this.equipment = equipment;
+          this.mission = mission;
+          this.currentLocation = "";
+          Base.objects.push(this);
+      }
+  }
+
+// planets can be hostile or friendly
+  class Planet {
+      constructor(name,atmosphere,type,inhabited){
+          this.name=name;
+          this.atmosphere=atmosphere;
+          this.type = type;
+          this.inhabited = inhabited;
+          this.currentLocation = "";
+          Planet.objects.push(this);
+      }
+  }
+
+  // setup some bad guys!
+   class Enemy {
+        constructor(race, description, attack, defense, hitPoints, prize){
+        this.race = race;
+        this.description=description;
+        this.attack=attack;
+        this.defense=defense;
+        this.hitPoints = hitPoints;
+        this.prize = prize;
+        this.currentLocation = [];
+        Enemy.objects.push(this);
+   }
+   }
+
+// these arrays hold a reference to the individual objects
+// of each class. It's a giant hassle, but you can't, say, 
+// write a list of all different "ships" that are class "Ship"
+// unless you do this
+  Ship.objects = [];
+  Base.objects=[];
+  Planet.objects=[];
+  Enemy.objects=[];
+
+// current course Array holds all the id numbers of the sectors
+// between the start and end destination
+  let currentCourse = [];
+
+// instantiate our ships
+  let enterPlop = new Ship('Star Trek Enterplop', 'Intersolar', 'hauling trash', 1000000);
+  let mav = new Ship('Mars Ascent Vehicle', 'MAV', 'Ascend into low orbit', 2200000);
+  let interstellar = new Ship('Interstellar','Deep Space','Star trekking', 3000000);
+  let hermes = new Ship('Hermes', 'Main Ship', 'Interplanetary Space Travel', 100000000);
+
+// instantiate our bases
+  let alpha = new Base('StarBase Alpha',new Object({"name":"Ultra-Scan","cost":20000,"saleText":"Long range scanner"}),"Go to Rylon IV");
+  let beta =  new Base('StarBase Beta', [new Object({name:"SuperShield",cost:50000,saleText:"Improved Defense"}),new Object ({name:"Mega Scan",cost:70000,saleText:"For peering into the abyss"})],"You need the Mega Scanner");
+
+// instantiate the planets
+  let rylon = new Planet('Rylon IV', "78% Nitrogen, 12% Oxygen, 10% Cyanide", "Type Z","unk");
+  let mars = new Planet('Mars',"The atmosphere of Mars is the layer of gas surrounding Mars. It is primarily composed of carbon dioxide (95.32%), molecular nitrogen (2.6%) and argon (1.9%). It also contains trace levels of water vapor, oxygen, carbon monoxide, hydrogen and other noble gases. The atmosphere of Mars is much thinner than Earth's.","Class B","false")
+  let mercury = new Planet('Mercury', "Mercury's atmosphere contains small amounts of hydrogen, helium, and oxygen. It also has even tinier amounts of sodium, potassium, calcium, and magnesium. Some of the gas particles come from the solar wind. Others are made by radioactive decay or when micrometeorites smash into the surface.","Class B","unk" );
+  let venus = new Planet('Venus',"The atmosphere of Venus is composed of 96.5% carbon dioxide, 3.5% nitrogen, and traces of other gases, most notably sulfur dioxide.","Type B","unk");
+  let earth = new Planet('Earth',"The Earth's atmosphere is composed of the following molecules: nitrogen (78%), oxygen (21%), argon (1%), and then trace amounts of carbon dioxide, neon, helium, methane, krypton, hydrogen, nitrous oxide, xenon, ozone, iodine, carbon monoxide, and ammonia. Lower altitudes also have quantities of water vapor.","Type B","unk");
+  let jupiter = new Planet('Jupiter',"Jupiter is made up predominantly of hydrogen. The simple, basic gas, a prime ingredient on the sun, accounts for 90 percent of the atmosphere. Nearly 10 percent is composed of helium. A very small fraction of the atmosphere is made up of compounds such as ammonia, sulfur, methane, and water vapor.","Type B","unk");
+  let saturn = new Planet('Saturn',"Saturn is approximately 75% hydrogen and 25% helium with traces of other substances like methane and water ice. Saturn's atmosphere, although similar to Jupiter's, is much less interesting to look at from a distance.","Type B","unk");
+  let uranus = new Planet('Uranus',"Uranus' atmosphere is predominantly made up of hydrogen and helium. Unlike Jupiter and Saturn, these light gases dominate only the outer edges of the planet, but are not a significant contributor to the rocky interior. The dull blue color of Uranus is caused by the presence of methane, which absorbs red light","Type B","unk");
+  let neptune = new Planet('Neptune',"Atmospheric composition: Neptune's atmosphere is composed up of many gases. These gases include Hydrogen (80%), Helium (19%), and Methane (1.5%). Some of the minor gases include trace amounts of Hydrogen Deuteride and Ethane.","Type B","unk");
+  let pluto = new Planet('Pluto',"Pluto's atmosphere is roughly 90% Nitrogen, and 10% other complex molecules such as methane. The composition of Pluto's atmosphere is very similar to the Earth's which is also 80% Nitrogen. The complex molecules probably come from radiation, which forces new molecules to be created from the surface of Pluto","Type B","unk")
+
+// setup the player
+  let player = new Player("","Captain",2000000);
+
+// setup the enemies
+  let furungal = new Enemy('Furungal','A vicious trader race who will try to steal your ship and all its contents.',20,20,20,100000);
+  // setup 100 furungal locations where they are hiding to take you out!
+  for (let i = 0;i<100;i++){
+      furungal.currentLocation.push(plotRandomGridLoc());
+  }
+  let blarg = new Enemy('The Blarg','This society seeks to kidnap and turn all humans into slaves to change the channels on their TVs',100,100,20,20000000);
+  // 50 blargs
+  for (let i = 0;i<50;i++){
+      blarg.currentLocation.push(plotRandomGridLoc());
+  }
+  // 200 vulcanians!
+  let vulcanians = new Enemy('Vulcanians','Have decided through logic and reason that humans are a galactic virus that must be cured.',10,10,10,500000);
+  for (let i = 0;i<200;i++){
+      vulcanians.currentLocation.push(plotRandomGridLoc());
+  }
+
+// plot locations on the space-grid
+// ship locations:
+  mav.currentLocation=plotRandomGridLoc();
+  hermes.currentLocation=plotRandomGridLoc();
+  enterPlop.currentLocation=plotRandomGridLoc();
+  interstellar.currentLocation=plotRandomGridLoc();
+
+// starbase locations:
+  alpha.currentLocation=plotRandomGridLoc();
+  beta.currentLocation=plotRandomGridLoc();
+// planet locations
+  rylon.currentLocation=plotRandomGridLoc();
+  mars.currentLocation= "33355";
+  mercury.currentLocation = "33354";
+  venus.currentLocation="33343";
+  earth.currentLocation="33344";
+  jupiter.currentLocation="33333";
+  saturn.currentLocation="33366";
+  neptune.currentLocation="33323";
+  uranus.currentLocation="33372";
+  pluto.currentLocation="33314";
+
+////////////////////////////////////////////
+// helper functions
+
+// returns a random number 
+function getRandomInt(max) {
+return Math.floor(Math.random() * Math.floor(max))+1;
+}
+
+// plot locations on the grid
+function plotRandomGridLoc() {
+    let tableNum = getRandomInt(5).toString();
+    let rowNum = getRandomInt(5).toString();
+    let colNum = getRandomInt(5).toString();
+    let innerRow = getRandomInt(8).toString();
+    let innerCol = getRandomInt(8).toString();
+    let randomLoc = tableNum+rowNum+colNum+innerRow+innerCol;
+    return randomLoc;
+}
+
+// setup the grid of tables to represent spatial coordinate system
+function setupTables() {
+	var numTables = 5;
+	var numRows = 5;
+	var numCols = 5;
+$("#spaceDiv").html("");
+    let tableHTML = "";
+    for (let tableCount = 0; tableCount<numTables;tableCount++){
+        tableHTML += '<div class="perspectiveDiv"><table class="outerTable">';
+        for(let rowCount=0;rowCount < numRows;rowCount++){
+            tableHTML += '<tr>';
+            for(let colCount=0;colCount<numCols;colCount++){
+                let tableID = (tableCount+1).toString();
+                let rowID = (rowCount+1).toString();
+                let colID = (colCount+1).toString();
+                tableHTML += '<td class="outer" id="'+tableID+rowID+colID+'">';
+                tableHTML += '<table style="width:100%;height:100%;margin:0px;padding:0px;">';
+                for (let rows=1; rows<9;rows++){
+                    tableHTML+='<tr>';
+                    for (let cols= 1; cols<9; cols++){
+                        tableHTML+= '<td class="inner" id="'+tableID+rowID+colID+rows+cols+'" style="border:1px solid #66ff66;margin:0px;padding:0px;">&nbsp;</td>';
+                    }
+                    tableHTML+= '</tr>';
+                }
+                tableHTML+='</table>';
+                tableHTML+= '</td>';
+            }
+            tableHTML += '</tr>';
+        }
+        tableHTML += "</table></div><br/>";
+    }
+    $("#spaceDiv").append(tableHTML);
+}
+
+
+function plotCourse(start, end){
+    let courseHTML = ""
+    currentCourse=[];
+    let startArray = start.split("");
+    let endArray = end.split("");
+    let courseStr = "";
+    let tableNum = parseInt(startArray[0]);
+    let rowNum = parseInt(startArray[1]);
+    let colNum = parseInt(startArray[2]);
+    let innerRow = parseInt(startArray[3]);
+    let innerCol = parseInt(startArray[4]);
+    if (parseInt(startArray[0])>parseInt(endArray[0])){
+        do {
+            tableNum--;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (tableNum>parseInt(endArray[0]))
+    } else if (parseInt(startArray[0])<parseInt(endArray[0])){
+        do {
+            tableNum++;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (tableNum<parseInt(endArray[0]))
+    }
+    if (parseInt(startArray[1])>parseInt(endArray[1])){
+        do {
+            rowNum--;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (rowNum>parseInt(endArray[1]))
+    } else if (parseInt(startArray[1])<parseInt(endArray[1])){
+        do {
+            rowNum++;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (rowNum<parseInt(endArray[1]))
+    }
+    if (parseInt(startArray[2])>parseInt(endArray[2])){
+        do {
+            colNum--;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (colNum>parseInt(endArray[2]))
+    } else if (parseInt(startArray[2])<parseInt(endArray[2])){
+        do {
+            colNum++;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (colNum<parseInt(endArray[2]))
+    }
+    if (parseInt(startArray[3])>parseInt(endArray[3])){
+        do {
+            innerRow--;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (innerRow>parseInt(endArray[3]))
+    } else if (parseInt(startArray[3])<parseInt(endArray[3])){
+        do {
+            innerRow++;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (innerRow<parseInt(endArray[3]))
+    }
+    if (parseInt(startArray[4])>parseInt(endArray[4])){
+        do {
+            innerCol--;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (innerCol>parseInt(endArray[4]))
+    } else if (parseInt(startArray[4])<parseInt(endArray[4])){
+        do {
+            innerCol++;
+            courseStr = tableNum.toString()+rowNum.toString()+colNum.toString()+innerRow.toString()+innerCol.toString();
+            currentCourse.push(courseStr);
+            $("#" + courseStr).css('background-color', 'white');
+            $("#" + courseStr).css('border', '1 px solid white');
+        } while (innerCol<parseInt(endArray[4]))
+    }
+    console.log(currentCourse);
+}
+
+/////////////////////////////////
+// Event handlers
+//
+//
+//
+
+// when you click the cells on the space grid
+$(document).on('click', '.outer', function() {
+  let clickedTable = this.id;
+  $("#textDiv").html(this.innerHTML);
+    
+});
+
+// when you click the cells on the granular grid
+$(document).on('click', '.inner', function() {
+  let textHTML = "";
+  if (currentCourse.length===0) {  
+  let clickedTable = this.id;
+  textHTML += `Plotting course to Sector: ${clickedTable} <br>
+               <p>Planets in this sector: <br>`;
+  for (let i = 0;i<Planet.objects.length;i++){
+               for (key in Planet.objects[i]){
+                    
+                    if (Planet.objects[i][key] === clickedTable) {
+                        textHTML+= ">>>>> " + Planet.objects[i]["name"] + "<br/>";
+                        textHTML += "<br/>---------------------<br/>";
+                    }
+               }
+            }
+    if (!player.ship){
+        textHTML+= '<p>You need a ship to plot a course!<br>';
+    } else {
+        plotCourse(player.ship.currentLocation,clickedTable);
+        textHTML += "<p>Plotted Course: " + currentCourse.flat();
+    }
+           
+  } else textHTML += "You must clear your course before plotting a new one. See 'help' for more info.<br>";
+   $("#textDiv").html(textHTML);
+});
+
+
+
+//////////////////////////////////
+//
+// Initial calls
+//
+window.onload = function() {
+setupTables();
+
+// this handles user input in the command line box
+// at the bottom of the screen
+$('#commandLine').on('keyup', function(e) {
+    
+    if (e.keyCode === 13) {
+    let commandInput = this.value;
+    let textHTML = "";
+    this.value="";
+        switch (commandInput) {
+            case 'course' : 
+            textHTML += "Current course settings: " + currentCourse.flat();
+            $("#textDiv").html(textHTML);
+            break;
+            case 'uncourse': 
+            currentCourse = [];
+            textHTML += "Your course is cleared";
+            if (!player.ship) {
+                textHTML += "<br/>Purchase a ship and plot a course.";
+            } else textHTML += "<br/>Plot a new course";
+            setupTables();
+            $("#textDiv").html(textHTML);
+            break;
+            case 'status': 
+            let shipName="";
+            let missionName = "";
+            let playerNamed="";
+            if (player.ship) {
+                shipName=player.ship.name
+                missionName=player.ship.missionStatement();
+            } else {
+                shipName = "You need to buy a ship."
+                missionName = "You'll get a mission when you buy a ship."
+            }
+            if (player.name){
+                playerNamed=player.name;
+                textHTML = `Name: ${playerNamed}<br>
+                        <p>Credits Remaining: ${player.money}<br>
+                        <p>Ship: ${shipName}<br/>
+                        <p>Mission: ${missionName} <br/>`;
+                            textHTML += "<p>Current Course:<br/>";            
+                if (currentCourse.length>0){
+                textHTML += currentCourse.flat() + "<br/>";
+                } else textHTML += "You heven't charted your course yet!";        
+            } else textHTML="You haven't logged in yet";
+            $("#textDiv").html(textHTML);            
+            break;
+            case 'clear':
+             $("#textDiv").html("");
+             break;
+            case 'ships':
+            $("#textDiv").html("");
+            
+            for (let i = 0;i<Ship.objects.length;i++){
+               for (key in Ship.objects[i]){
+                    textHTML+= key + " : " + Ship.objects[i][key] + "<br/>";
+                    
+                    if (key === "currentLocation") {
+                        $("#" + Ship.objects[i][key]).css('background-color', 'white');
+                        $("#" + Ship.objects[i][key]).css('border', '1 px solid white');
+                    }
+               } textHTML += "<br/>---------------------<br/>";
+                
+            } textHTML += "<br/>---------------------<br/>";
+            $("#textDiv").html(textHTML);
+            break;
+            case 'scan':
+            textHTML += "<p>Bases: <br/><p>";
+            for (let i = 0;i<Base.objects.length;i++){
+               for (key in Base.objects[i]){
+                    
+                    if (typeof Base.objects[i][key]==='object') {
+                        let objArray = Base.objects[i][key];
+                        if (!objArray.length){
+                            textHTML+= "Item to Sell: " + objArray.name + "&nbsp;&nbsp; -- Cost: " + objArray.cost + "&nbsp;&nbsp;  -- Notes: " + objArray.saleText + "<br/>";
+                        } else {
+                        for (let x= 0;x<objArray.length;x++){
+                        textHTML+= "Item to Sell: " + objArray[x].name + "&nbsp;&nbsp; -- Cost: " + objArray[x].cost + "&nbsp;&nbsp;  -- Notes: " + objArray[x].saleText + "<br/>";
+                        }
+                        }
+                    } else textHTML+= key + " : " + Base.objects[i][key] + "<br/>";
+                    if (key === "currentLocation") {
+                        $("#" + Base.objects[i][key]).css('background-color', 'yellow');
+                        $("#" + Base.objects[i][key]).css('border', '1 px solid yellow');
+                    }
+               } textHTML += "<br/>---------------------<br/>";
+                
+            } textHTML += "<br/>";
+            textHTML += "<p>Planets: <br/><p>";
+            for (let i = 0;i<Planet.objects.length;i++){
+               for (key in Planet.objects[i]){
+                    textHTML+= key + " : " + Planet.objects[i][key] + "<br/>";
+                    if (key === "currentLocation") {
+                        $("#" + Planet.objects[i][key]).css('background-color', 'blue');
+                        $("#" + Planet.objects[i][key]).css('border', '1 px solid blue');
+                    }
+               } textHTML += "<br/>---------------------<br/>";
+                
+            }
+            textHTML += "<p>Enemies: <br/><p>";
+            for (let i = 0;i<Enemy.objects.length;i++){
+               for (key in Enemy.objects[i]){
+                    
+                    if (typeof Enemy.objects[i][key]==='object') {
+                        let objArray = Enemy.objects[i][key];  
+                        for (let x= 0;x<objArray.length;x++){
+                        $("#" + objArray[x]).css('background-color', 'red');
+                        $("#" + objArray[x]).css('border', '1 px solid red');
+                        }
+                      } else textHTML+= key + " : " + Enemy.objects[i][key] + "<br/>";
+                }  textHTML += "<br/>---------------------<br/>";
+                    
+            } 
+                
+
+            $("#textDiv").html(textHTML);
+            break; 
+            case 'help':
+            textHTML = `me: yourname -- logs in to Starbase Academy<br/>
+                        ships -- show other Federale Ships<br/>
+                        buy ship: shipname -- Purchase a ship (don't forget the ":" after "ship")<br/>
+                        scan -- data granularity depends on the quality of your equipment<br/>
+                        <p>Clicking on the scanner displays a quadrant, which is made up of sectors.</b>
+                        <p>clear -- clears this window<br/>
+                        <p>course -- shows your current course settings<br/>
+                        uncourse -- clears course settings. You must do this before setting a new course<br/>                        
+                        <p>rotX: angle -- rotate scanner on x-axis<br/>
+                        rotY: angle -- rotate scanner on y-axis<br/>
+                        rotZ: angle -- rotate scanner on z-axis<br/>
+                        <p>Click on the scanner to view a sector or plot a course<br/>`;
+            $("#textDiv").html(textHTML);           
+            break;
+        }
+        if (commandInput.toLowerCase().includes("rotx")){
+            let rotator = commandInput.split(":");
+            $("#spaceDiv table").css("transform", "rotateX("+parseInt(rotator[1].trim())+"deg)");
+        }
+        if (commandInput.toLowerCase().includes("roty")){
+            let rotator = commandInput.split(":");
+            $("#spaceDiv table").css("transform", "rotateY("+parseInt(rotator[1].trim())+"deg)");
+        }
+        if (commandInput.toLowerCase().includes("rotz")){
+            let rotator = commandInput.split(":");
+            $("#spaceDiv table").css("transform", "rotateZ("+parseInt(rotator[1].trim())+"deg)");
+        }
+        if (commandInput.toLowerCase().includes("me:")){
+        let playerName = commandInput.split(":");
+            player.name=playerName[1];
+            $("#textDiv").html(`Sign-in recognized as: ${player.name} 
+            <p>Welcome Captain. <br>
+            <p>You have ${player.money} credits. Please purchase a ship to begin.`);
+         }
+         if (commandInput.toLowerCase().includes("buy ship:")){
+        let buyShip = commandInput.toLowerCase().split(":");
+        
+        for (let i = 0;i<Ship.objects.length;i++){
+               for (key in Ship.objects[i]){   
+                  if (Ship.objects[i][key].toString().toLowerCase()===buyShip[1].trim()) {
+                    let shipCost = parseInt(Ship.objects[i]["cost"]);
+                        if (shipCost >= player.money){
+                            textHTML += "This ship is too expensive for you";
+                        } else 
+                        player.money -= shipCost;
+                        player.enterShip(Ship.objects[i]);
+                        player.ship.currentLocation=earth.currentLocation;
+                        textHTML += `You now own the ${Ship.objects[i]["name"]}. <br>
+                        <p>You have ${player.money} credits left. <br/>
+                        Your current location is: ${player.ship.currentLocation}<br/>
+                        <p>Plot a course for Mars and get going.<br/>
+                        <p>Happy captaining!`;
+                        
+                    }
+               } textHTML += "<br/>---------------------<br/>";
+                
+            } 
+            $("#textDiv").html(textHTML);
+         }
+    } 
+});
+
+}
+</script>
+<!--
+\\
+\\ This is where all the output goes
+\\
+-->
+<div id="leftDiv">
+<img src="includes/banner.png" style="width:100%;">
+<div id="textDiv">StarBase Command => Mission Statement:<br/>
+    -- Me: yourname<br/>
+    -- buy ship: ship<br/>
+    -- Plot course <br/>
+    -- Begin Mission<br/> 
+    <p>Type 'help' in the command line to get started</p>
+</div>
+</div>
+<div id="spaceDiv"></div>
+<div id="monitorBar"><input type="text" id="commandLine" class="css-input" placeholder="Enter Your Command (help):" /></div>
+
+</body>
+</html>

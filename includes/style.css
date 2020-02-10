@@ -1,0 +1,99 @@
+body {
+    background-color: #282828;
+    overflow-y: hidden;
+}
+#spaceDiv {
+    -webkit-perspective: 1000px; /* Chrome, Safari, Opera  */
+    perspective: 1000px;
+    text-align: center;
+	/* border: 1px solid black;
+	box-shadow: 10px 10px 5px #aaaaaa; */
+	transform-origin: top left;
+	margin-top:20px;
+    padding-top:20px;
+    width:50%;
+    float: left; 
+    transform: scaleY(.1);
+}
+
+    .perspectiveDiv {
+	-webkit-perspective: 1000px; /* Chrome, Safari, Opera  */
+    perspective: 1000px;
+    text-align: center;
+	/* transform-origin: top left; */
+	padding-top:30px;
+    /* -webkit-transform: rotateZ(14deg);
+    transform: rotateZ(14deg); */
+}
+
+.outerTable {
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+	text-align: center;
+	padding: 5pt 0pt;
+	border-spacing: 0pt;
+	margin-left:auto;
+	margin-right:auto;
+    -webkit-transform: rotateX(26deg);
+	transform: rotateX(26deg);
+    border: 2pt solid #33ff00;
+    
+}
+
+.outer {
+	width: 4em;
+	height: 4em;
+	border: 2pt solid #33ff00;
+    vertical-align:top;
+    margin: 0px;
+	color: #f0f8ff;
+}
+
+.outer:hover {
+	background: blue;
+}
+
+td:active {
+	background: #0080f0;
+}
+
+#leftDiv {
+    width:48%;
+    float: left;
+    text-align: left;
+    margin-left: 10px;
+    color: #00ff33;
+    overflow-wrap: break-word;
+ }
+
+#textDiv{
+    margin-top:20px;
+    border:1px solid #00ff33;
+    height: 400px;
+    padding:10px;
+    overflow-y: scroll;
+}
+
+#monitorBar {
+    width:99%;
+  font-family: Tahoma;
+  font-size: 10pt;
+  text-align: left;
+  position: absolute;
+  bottom: 0px;
+  color: yellow;
+}
+.css-input {
+     width:48%;
+     padding: 5px;
+     font-size: 16px;
+     border-width: 1px;
+     border-color: #33ff00;
+     background-color: #282828;
+     color: #00ff33;
+     border-style: solid;
+   
+}
+ .css-input:focus {
+     outline:none;
+}
